@@ -1,20 +1,19 @@
 from scipy import sparse
-from solve import solve_with_dirichlet_data
+from utils.solve import solve_with_dirichlet_data
 from typing import Iterable, Callable
 import numpy as np
 
-from util import np, _
-from quad import QuadRule
-from mesh import Triangulation
+from utils.util import np, _
+from utils.quad import QuadRule
+from utils.mesh import Triangulation
 
 
 '''
 ------------------------------------------------------------------------------------------------------------------- 
-Problem 2
+Session5: Problem 2
 ------------------------------------------------------------------------------------------------------------------- 
 
 '''
-
 
 def mass_matrix(mesh: Triangulation) -> sparse.csr_matrix:
 
@@ -104,12 +103,13 @@ def assemble_neumann_rhs(mesh: Triangulation, mask: np.ndarray, g: float = 1.00)
   
   # loop over each line [index_of_a, index_of_b] and the corresponding points (a, b)
   for line, (a, b) in zip(neumann_lines, mesh.points[neumann_lines]):
-    rhs[line] += ### YOUR CODE HERE
+    pass
+    # rhs[line] += ### YOUR CODE HERE
 
   return rhs
 
 
-def reaction_diffusion(mesh_size=0.05):
+def reaction_diffusion_neumann(mesh_size=0.05):
   """
     P1 FEM solution of the reaction-diffusion problem:
 
@@ -166,9 +166,62 @@ def reaction_diffusion(mesh_size=0.05):
 
   mesh.tripcolor(solution)
 
+
 '''
 ------------------------------------------------------------------------------------------------------------------- 
-Problem 3 
+Session 4: problem 3 
+------------------------------------------------------------------------------------------------------------------- 
+
+'''
+
+def reaction_diffusion_dirichlet(mesh_size=0.05):
+  """
+    P1 FEM solution of the reaction-diffusion problem:
+
+      -∆u + u = 1    in  Ω
+            u = 0    on ∂Ω
+
+    where Ω = (0, 1)^2.
+
+    parameters
+    ----------
+    mesh_size: float value 0 < mesh_size < 1 tuning the mesh density.
+               Smaller value => denser mesh.
+
+  """
+
+  # create a triangulation of the unit square by passing an array with
+  # rows equal to the square's vertices in counter-clockwise direction.
+  # The last vertex need not be repeated.
+  mesh = Triangulation.from_polygon( np.array([ [0, 0],
+                                                [1, 0],
+                                                [1, 1],
+                                                [0, 1] ]), mesh_size=mesh_size)
+
+  # plot the mesh
+  mesh.plot()
+
+  # make mass matrix
+  M = mass_matrix(mesh)
+
+  # make stiffness matrix
+  A = stiffness_matrix(mesh)
+
+  # assemble the load vector
+  rhs = load_vector(mesh, F=1)
+
+  # the boundary vertices are the unique indices of the mesh's boundary edges (mesh.lines)
+  bindices = np.unique(mesh.lines)
+
+  # use the `solve_with_dirichlet_data` method to solve the system under the boundary condition
+  solution = solve_with_dirichlet_data(A + M, rhs, bindices, np.zeros_like(bindices))
+
+  mesh.tripcolor(solution)
+
+
+'''
+------------------------------------------------------------------------------------------------------------------- 
+Session5: Problem 3 
 ------------------------------------------------------------------------------------------------------------------- 
 
 '''
@@ -314,6 +367,52 @@ def assemble_rhs_from_iterables(mesh: Triangulation, *rhs_iterables) -> np.ndarr
     outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(x)[:, _, _]).sum(0)
     yield outer * detBK
 
+
+def mass_with_reaction_iter(mesh: Triangulation, quadrule: QuadRule, freact: Callable = None) -> Iterable:
+  r"""
+    Iterator for the mass matrix, to be passed into `assemble_matrix_from_iterables`.
+
+    Parameters
+    ----------
+
+    mesh : :class:`Triangulation`
+      An instantiation of the `Triangulation` class, representing the mesh.
+    quadrule : :class: `QuadRule`
+      Instantiation of the `QuadRule` class with fields quadrule.points and
+      quadrule.weights. quadrule.simplex_type must be 'triangle'.
+    freact: :class: `Callable`
+      Function representing the reaction term. Must take as argument a single
+      array of shape quadrule.points.shape and return a :class: `np.ndarray`
+      object either of shape arr.shape == quadrule.weights.shape or
+                             arr.shape == (1,)
+      The latter usually means that freact is constant.
+
+    Example
+    -------
+    For an example, see the end of the script.
+  """
+
+  # freact not passed => take it to be constant one.
+  if freact is None:
+    freact = lambda x: np.array([1])
+
+  weights = quadrule.weights
+  qpoints = quadrule.points
+  shapeF = shape2D_LFE(quadrule)
+
+  # loop over all points (a, b, c) per triangle and the correponding
+  # Jacobi matrix and measure
+  for (a, b, c), BK, detBK in zip(mesh.points_iter(), mesh.BK, mesh.detBK):
+
+    # define the global points by pushing forward the local quadrature points
+    # from the reference element onto the current triangle
+    x = qpoints @ BK.T + a[_]
+
+    # this line is equivalent to
+    # outer[i, j] = (weights * shapeF[:, i] * shapeF[:, j] * freact(x)).sum()
+    # it's a tad faster because it's vectorised
+    outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(x)[:, _, _]).sum(0)
+    yield outer * detBK
 
 def stiffness_with_diffusivity_iter(mesh: Triangulation, quadrule: QuadRule, fdiffuse: Callable = None) -> Iterable:
   r"""
