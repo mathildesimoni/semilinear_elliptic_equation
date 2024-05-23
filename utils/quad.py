@@ -1,4 +1,4 @@
-from util import np, frozen
+from utils.util import np, frozen
 
 
 class QuadRule:

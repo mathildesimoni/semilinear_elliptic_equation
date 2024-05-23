@@ -5,7 +5,7 @@
 @author: Jochen Hinz
 """
 
-from util import np, _, freeze
+from utils.util import np, _, freeze
 import pygmsh
 import meshio
 from matplotlib import pyplot as plt

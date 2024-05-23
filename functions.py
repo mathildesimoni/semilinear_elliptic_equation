@@ -103,8 +103,7 @@ def assemble_neumann_rhs(mesh: Triangulation, mask: np.ndarray, g: float = 1.00)
   
   # loop over each line [index_of_a, index_of_b] and the corresponding points (a, b)
   for line, (a, b) in zip(neumann_lines, mesh.points[neumann_lines]):
-    pass
-    # rhs[line] += ### YOUR CODE HERE
+    rhs[line] += local_neumann_load * np.linalg.norm(b - a)
 
   return rhs
 
@@ -412,6 +411,50 @@ def mass_with_reaction_iter(mesh: Triangulation, quadrule: QuadRule, freact: Cal
     # outer[i, j] = (weights * shapeF[:, i] * shapeF[:, j] * freact(x)).sum()
     # it's a tad faster because it's vectorised
     outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(x)[:, _, _]).sum(0)
+    yield outer * detBK
+
+
+def mass_with_reaction_iter_2(mesh: Triangulation, quadrule: QuadRule, un, alpha) -> Iterable:
+  r"""
+    Iterator for the mass matrix, to be passed into `assemble_matrix_from_iterables`.
+
+    Parameters
+    ----------
+
+    mesh : :class:`Triangulation`
+      An instantiation of the `Triangulation` class, representing the mesh.
+    quadrule : :class: `QuadRule`
+      Instantiation of the `QuadRule` class with fields quadrule.points and
+      quadrule.weights. quadrule.simplex_type must be 'triangle'.
+    freact: :class: `Callable`
+      Function representing the reaction term. Must take as argument a single
+      array of shape quadrule.points.shape and return a :class: `np.ndarray`
+      object either of shape arr.shape == quadrule.weights.shape or
+                             arr.shape == (1,)
+      The latter usually means that freact is constant.
+
+    Example
+    -------
+    For an example, see the end of the script.
+  """
+
+  # freact not passed => take it to be constant one.
+  freact = lambda x: alpha * np.array([x**2])
+
+  weights = quadrule.weights
+  qpoints = quadrule.points
+  shapeF = shape2D_LFE(quadrule)
+
+  # loop over all points (a, b, c) per triangle and the correponding
+  # Jacobi matrix and measure
+  for tri, (a, b, c), BK, detBK in zip(mesh.triangles, mesh.points_iter(), mesh.BK, mesh.detBK):
+    un_loc = un[tri] 
+    un_qpoints = shapeF @ un_loc 
+
+    # this line is equivalent to
+    # outer[i, j] = (weights * shapeF[:, i] * shapeF[:, j] * freact(x)).sum()
+    # it's a tad faster because it's vectorised
+    outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(un_qpoints)[:, _, _]).sum(0)
     yield outer * detBK
 
 def stiffness_with_diffusivity_iter(mesh: Triangulation, quadrule: QuadRule, fdiffuse: Callable = None) -> Iterable:
