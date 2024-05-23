@@ -6,13 +6,13 @@ from typing import Callable, Tuple
 from functools import partial
 
 # import from other python files
-from functions import gauss_quadrature
+from functions import *
 
-gauss6 = partial(gauss_quadrature, order=6) # gauss quadrature scheme of order 6
+#gauss6 = partial(gauss_quadrature, order=6) # gauss quadrature scheme of order 6
 
 def main():
   print("Hello!")
-
+  solve_problem_3(mesh_size=0.01)
   # define parameters
   alpha = 0.1 # alpha = 2.0
   tol = 1e-6

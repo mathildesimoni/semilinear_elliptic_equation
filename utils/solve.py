@@ -5,7 +5,7 @@
 @author: Jochen Hinz
 """
 
-from util import np
+from utils import np
 from scipy import sparse
 from scipy.sparse import linalg
 
