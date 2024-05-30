@@ -321,6 +321,7 @@ def assemble_rhs_from_iterables(mesh: Triangulation, *rhs_iterables) -> np.ndarr
 
   return rhs
 
+def mass_with_reaction_iter(mesh: Triangulation, quadrule: QuadRule, freact: Callable = None) -> Iterable:
   r"""
     Iterator for the mass matrix, to be passed into `assemble_matrix_from_iterables`.
 
@@ -367,51 +368,51 @@ def assemble_rhs_from_iterables(mesh: Triangulation, *rhs_iterables) -> np.ndarr
     yield outer * detBK
 
 
-def mass_with_reaction_iter(mesh: Triangulation, quadrule: QuadRule, freact: Callable = None) -> Iterable:
-  r"""
-    Iterator for the mass matrix, to be passed into `assemble_matrix_from_iterables`.
+# def mass_with_reaction_iter(mesh: Triangulation, quadrule: QuadRule, freact: Callable = None) -> Iterable:
+#   r"""
+#     Iterator for the mass matrix, to be passed into `assemble_matrix_from_iterables`.
 
-    Parameters
-    ----------
+#     Parameters
+#     ----------
 
-    mesh : :class:`Triangulation`
-      An instantiation of the `Triangulation` class, representing the mesh.
-    quadrule : :class: `QuadRule`
-      Instantiation of the `QuadRule` class with fields quadrule.points and
-      quadrule.weights. quadrule.simplex_type must be 'triangle'.
-    freact: :class: `Callable`
-      Function representing the reaction term. Must take as argument a single
-      array of shape quadrule.points.shape and return a :class: `np.ndarray`
-      object either of shape arr.shape == quadrule.weights.shape or
-                             arr.shape == (1,)
-      The latter usually means that freact is constant.
+#     mesh : :class:`Triangulation`
+#       An instantiation of the `Triangulation` class, representing the mesh.
+#     quadrule : :class: `QuadRule`
+#       Instantiation of the `QuadRule` class with fields quadrule.points and
+#       quadrule.weights. quadrule.simplex_type must be 'triangle'.
+#     freact: :class: `Callable`
+#       Function representing the reaction term. Must take as argument a single
+#       array of shape quadrule.points.shape and return a :class: `np.ndarray`
+#       object either of shape arr.shape == quadrule.weights.shape or
+#                              arr.shape == (1,)
+#       The latter usually means that freact is constant.
 
-    Example
-    -------
-    For an example, see the end of the script.
-  """
+#     Example
+#     -------
+#     For an example, see the end of the script.
+#   """
 
-  # freact not passed => take it to be constant one.
-  if freact is None:
-    freact = lambda x: np.array([1])
+#   # freact not passed => take it to be constant one.
+#   if freact is None:
+#     freact = lambda x: np.array([1])
 
-  weights = quadrule.weights
-  qpoints = quadrule.points
-  shapeF = shape2D_LFE(quadrule)
+#   weights = quadrule.weights
+#   qpoints = quadrule.points
+#   shapeF = shape2D_LFE(quadrule)
 
-  # loop over all points (a, b, c) per triangle and the correponding
-  # Jacobi matrix and measure
-  for (a, b, c), BK, detBK in zip(mesh.points_iter(), mesh.BK, mesh.detBK):
+#   # loop over all points (a, b, c) per triangle and the correponding
+#   # Jacobi matrix and measure
+#   for (a, b, c), BK, detBK in zip(mesh.points_iter(), mesh.BK, mesh.detBK):
 
-    # define the global points by pushing forward the local quadrature points
-    # from the reference element onto the current triangle
-    x = qpoints @ BK.T + a[_]
+#     # define the global points by pushing forward the local quadrature points
+#     # from the reference element onto the current triangle
+#     x = qpoints @ BK.T + a[_]
 
-    # this line is equivalent to
-    # outer[i, j] = (weights * shapeF[:, i] * shapeF[:, j] * freact(x)).sum()
-    # it's a tad faster because it's vectorised
-    outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(x)[:, _, _]).sum(0)
-    yield outer * detBK
+#     # this line is equivalent to
+#     # outer[i, j] = (weights * shapeF[:, i] * shapeF[:, j] * freact(x)).sum()
+#     # it's a tad faster because it's vectorised
+#     outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(x)[:, _, _]).sum(0)
+#     yield outer * detBK
 
 
 def mass_with_reaction_iter_2(mesh: Triangulation, quadrule: QuadRule, un, alpha) -> Iterable:
@@ -439,7 +440,8 @@ def mass_with_reaction_iter_2(mesh: Triangulation, quadrule: QuadRule, un, alpha
   """
 
   # freact not passed => take it to be constant one.
-  freact = lambda x: alpha * np.array([x**2])
+  # freact = lambda x: alpha * np.array([x**2])
+  freact = lambda x: alpha * np.square(x)
 
   weights = quadrule.weights
   qpoints = quadrule.points
@@ -454,6 +456,12 @@ def mass_with_reaction_iter_2(mesh: Triangulation, quadrule: QuadRule, un, alpha
     # this line is equivalent to
     # outer[i, j] = (weights * shapeF[:, i] * shapeF[:, j] * freact(x)).sum()
     # it's a tad faster because it's vectorised
+    # print("weights: ", weights[:, _, _].shape)
+    # print(shapeF[..., _].shape)
+    # print(shapeF[:, _].shape)
+    # print( freact(un_qpoints)[:, _, _].shape)
+    # print((weights[:, _, _] * shapeF[..., _]).shape)
+    # print((weights[:, _, _] * shapeF[..., _] * shapeF[:, _]).shape)
     outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(un_qpoints)[:, _, _]).sum(0)
     yield outer * detBK
 
