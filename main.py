@@ -13,13 +13,13 @@ from utils.quad import seven_point_gauss_6
 from utils.mesh import Triangulation
 from utils.quad import QuadRule
 from functions import assemble_matrix_from_iterables, assemble_neumann_rhs, assemble_rhs_from_iterables, \
-                      stiffness_with_diffusivity_iter, mass_with_reaction_iter, poisson_rhs_iter, mass_with_reaction_iter_2
+                      stiffness_with_diffusivity_iter, mass_with_reaction_iter, poisson_rhs_iter, mass_with_reaction_iter_2, \
+                      rhs_newton_b, mass_with_reaction_iter_3
 from utils.solve import solve_with_dirichlet_data
 
 
 def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float, alpha:float):
   error = tol + 1
-  # f = lambda x: np.ones(x.shape).T
   f = lambda x: np.array([100])
   u = u0
   i = 0
@@ -55,6 +55,42 @@ def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:
   mesh.tripcolor(u)
   return i, errors, u
 
+def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float, alpha:float):
+  error = tol + 1
+  # f = lambda x: np.ones(x.shape).T
+  u = u0
+  i = 0
+  max_iter = 10000
+  errors = np.zeros(max_iter)
+
+
+  while (error > tol) and (i < max_iter):
+    # assemble the linear system
+    Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
+    Miter = mass_with_reaction_iter_3(mesh, quadrule, u, alpha)
+    rhsiter = rhs_newton_b(mesh=mesh, quadrule=quadrule, alpha=alpha, un=u) #+ rhs_newton_a() + 
+
+    # import ipdb
+    # ipdb.set_trace()
+
+    S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
+    rhs = assemble_rhs_from_iterables(mesh, rhsiter)
+
+    # solve the system
+    bindices = np.unique(mesh.lines)
+    u_new = u + solve_with_dirichlet_data(S, rhs, bindices, np.zeros_like(bindices))
+
+    # compute error
+    error = np.linalg.norm(u - u_new, ord = np.inf)
+    errors[i] = error
+
+    print(i, error)
+
+    # update u
+    u = u_new
+    i += 1 
+  
+  mesh.tripcolor(u)
 
 # def solve_linear_problem(mesh, quadrule, un, alpha):
 #   r""" 
@@ -79,7 +115,12 @@ def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:
 #   # f = 100 * np.ones((mesh.points.shape[0], 1))
 #   # rhsiter = poisson_rhs_iter(mesh, quadrule, f)
 
-def F_anderson(u: np.array, mesh: Triangulation, quadrule: QuadRule, f: Callable, alpha: float):
+def solve_anderson(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: float, alpha:float):
+
+  # f = lambda x: np.ones(x.shape).T
+  f = lambda x: np.array([100])
+
+  def F_anderson(u):
     # assemble the linear system
     Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
     Miter = mass_with_reaction_iter_2(mesh, quadrule, u, alpha)
@@ -96,33 +137,8 @@ def F_anderson(u: np.array, mesh: Triangulation, quadrule: QuadRule, f: Callable
     u_new = solve_with_dirichlet_data(S, rhs, bindices, np.zeros_like(bindices))
 
     return u_new - u
-
-def anderson_acceleration(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: float, alpha:float):
-
-  # f = lambda x: np.ones(x.shape).T
-  f = lambda x: np.array([100])
-
-  # def F_anderson(mesh: Triangulation, quadrule: QuadRule, u: np.array, f: Callable):
-  #   # assemble the linear system
-  #   Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
-  #   Miter = mass_with_reaction_iter_2(mesh, quadrule, u, alpha)
-  #   rhsiter = poisson_rhs_iter(mesh, quadrule, f)
-
-  #   # import ipdb
-  #   # ipdb.set_trace()
-
-  #   S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
-  #   rhs = assemble_rhs_from_iterables(mesh, rhsiter)
-
-  #   # solve the system
-  #   bindices = np.unique(mesh.lines)
-  #   u_new = solve_with_dirichlet_data(S, rhs, bindices, np.zeros_like(bindices))
-
-  #   return u_new - u
   
-  F_partial = partial(F_anderson, mesh=mesh, quadrule=quadrule, f=f, alpha=alpha)
-  
-  u_anderson = optimize.anderson(lambda u0: F_partial(u0), u0, verbose=True, f_tol=tol)
+  u_anderson = optimize.anderson(lambda u0: F_anderson(u0), u0, verbose=True, f_tol=tol)
 
   mesh.tripcolor(u_anderson)
 
@@ -130,7 +146,7 @@ def anderson_acceleration(mesh: Triangulation, quadrule: QuadRule, u0:np.array, 
 def main():
 
   # define parameters
-  alpha = 2 # OR alpha = 2.0
+  alpha = 0.1 # OR alpha = 2.0
   tol = 1e-6 # tolerance for the fixed point method
   u0_val = 0 # initial solution
   n_min = 100  # minimum number of vertices
@@ -160,7 +176,10 @@ def main():
   # print("Final error: ", errors[i-1])
 
   # QUESTION 3: Anderson acceleration
-  anderson_acceleration(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  # solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+
+  # QUESTION 4: Newton scheme
+  solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
 
 
 if __name__ == '__main__':

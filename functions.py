@@ -465,6 +465,56 @@ def mass_with_reaction_iter_2(mesh: Triangulation, quadrule: QuadRule, un, alpha
     outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(un_qpoints)[:, _, _]).sum(0)
     yield outer * detBK
 
+def mass_with_reaction_iter_3(mesh: Triangulation, quadrule: QuadRule, un, alpha) -> Iterable:
+  r"""
+    Iterator for the mass matrix, to be passed into `assemble_matrix_from_iterables`.
+
+    Parameters
+    ----------
+
+    mesh : :class:`Triangulation`
+      An instantiation of the `Triangulation` class, representing the mesh.
+    quadrule : :class: `QuadRule`
+      Instantiation of the `QuadRule` class with fields quadrule.points and
+      quadrule.weights. quadrule.simplex_type must be 'triangle'.
+    freact: :class: `Callable`
+      Function representing the reaction term. Must take as argument a single
+      array of shape quadrule.points.shape and return a :class: `np.ndarray`
+      object either of shape arr.shape == quadrule.weights.shape or
+                             arr.shape == (1,)
+      The latter usually means that freact is constant.
+
+    Example
+    -------
+    For an example, see the end of the script.
+  """
+
+  # freact not passed => take it to be constant one.
+  # freact = lambda x: alpha * np.array([x**2])
+  freact = lambda x: 3 * alpha * np.square(x)
+
+  weights = quadrule.weights
+  qpoints = quadrule.points
+  shapeF = shape2D_LFE(quadrule)
+
+  # loop over all points (a, b, c) per triangle and the correponding
+  # Jacobi matrix and measure
+  for tri, (a, b, c), BK, detBK in zip(mesh.triangles, mesh.points_iter(), mesh.BK, mesh.detBK):
+    un_loc = un[tri] 
+    un_qpoints = shapeF @ un_loc 
+
+    # this line is equivalent to
+    # outer[i, j] = (weights * shapeF[:, i] * shapeF[:, j] * freact(x)).sum()
+    # it's a tad faster because it's vectorised
+    # print("weights: ", weights[:, _, _].shape)
+    # print(shapeF[..., _].shape)
+    # print(shapeF[:, _].shape)
+    # print( freact(un_qpoints)[:, _, _].shape)
+    # print((weights[:, _, _] * shapeF[..., _]).shape)
+    # print((weights[:, _, _] * shapeF[..., _] * shapeF[:, _]).shape)
+    outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(un_qpoints)[:, _, _]).sum(0)
+    yield outer * detBK
+
 def stiffness_with_diffusivity_iter(mesh: Triangulation, quadrule: QuadRule, fdiffuse: Callable = None) -> Iterable:
   r"""
     Iterator for the stiffness matrix, to be passed into `assemble_matrix_from_iterables`.
@@ -559,6 +609,46 @@ def poisson_rhs_iter(mesh: Triangulation, quadrule: QuadRule, f: Callable) -> It
     fx = f(x)
 
     yield (shapeF * (weights * fx)[:, _]).sum(0) * detBK
+
+def rhs_newton_b(mesh: Triangulation, quadrule: QuadRule, alpha: float, un: np.array) -> Iterable:
+  r"""
+    Iterator for assembling the right-hand side corresponding to
+    \int f(x) phi_i dx.
+
+    To be passed into the `assemble_rhs_from_iterables` function.
+
+    Parameters
+    ----------
+
+    mesh : :class:`Triangulation`
+      An instantiation of the `Triangulation` class, representing the mesh.
+    quadrule : :class: `QuadRule`
+      Instantiation of the `QuadRule` class with fields quadrule.points and
+      quadrule.weights. quadrule.simplex_type must be 'triangle'.
+    f : :class: `Callable`
+      Function representing the right hand side as a function of the position.
+      Must take as input a vector of shape (nquadpoints, 2) and return either
+      a vector of shape (nquadpoints,) or (1,).
+      The latter means f is constant.
+  """
+  f = lambda x: alpha * np.power(x, 3) - 100
+
+  weights = quadrule.weights
+  qpoints = quadrule.points
+  shapeF = shape2D_LFE(quadrule)
+
+  for tri, (a, b, c), BK, detBK in zip(mesh.triangles, mesh.points_iter(), mesh.BK, mesh.detBK):
+
+    un_loc = un[tri] 
+    un_qpoints = shapeF @ un_loc 
+
+    # push forward of the local quadpoints (c.f. mass matrix with reaction term).
+    # x = qpoints @ BK.T + a[_]
+
+    # rhs function f evaluated in the push-forward points
+    # fx = f(x)
+
+    yield (shapeF * (weights * f(un_qpoints))[:, _]).sum(0) * detBK
 
 
 def load_vector(mesh: Triangulation, F: float = 1.0) -> np.ndarray:
