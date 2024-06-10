@@ -1,8 +1,10 @@
 import numpy as np
 from scipy import sparse
+from scipy import optimize
 from scipy.sparse import linalg as splinalg
 from numbers import Number
 from typing import Callable, Tuple
+
 
 from functools import partial
 
@@ -77,6 +79,55 @@ def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:
 #   # f = 100 * np.ones((mesh.points.shape[0], 1))
 #   # rhsiter = poisson_rhs_iter(mesh, quadrule, f)
 
+def F_anderson(u: np.array, mesh: Triangulation, quadrule: QuadRule, f: Callable, alpha: float):
+    # assemble the linear system
+    Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
+    Miter = mass_with_reaction_iter_2(mesh, quadrule, u, alpha)
+    rhsiter = poisson_rhs_iter(mesh, quadrule, f)
+
+    # import ipdb
+    # ipdb.set_trace()
+
+    S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
+    rhs = assemble_rhs_from_iterables(mesh, rhsiter)
+
+    # solve the system
+    bindices = np.unique(mesh.lines)
+    u_new = solve_with_dirichlet_data(S, rhs, bindices, np.zeros_like(bindices))
+
+    return u_new - u
+
+def anderson_acceleration(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: float, alpha:float):
+
+  # f = lambda x: np.ones(x.shape).T
+  f = lambda x: np.array([100])
+
+  # def F_anderson(mesh: Triangulation, quadrule: QuadRule, u: np.array, f: Callable):
+  #   # assemble the linear system
+  #   Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
+  #   Miter = mass_with_reaction_iter_2(mesh, quadrule, u, alpha)
+  #   rhsiter = poisson_rhs_iter(mesh, quadrule, f)
+
+  #   # import ipdb
+  #   # ipdb.set_trace()
+
+  #   S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
+  #   rhs = assemble_rhs_from_iterables(mesh, rhsiter)
+
+  #   # solve the system
+  #   bindices = np.unique(mesh.lines)
+  #   u_new = solve_with_dirichlet_data(S, rhs, bindices, np.zeros_like(bindices))
+
+  #   return u_new - u
+  
+  F_partial = partial(F_anderson, mesh=mesh, quadrule=quadrule, f=f, alpha=alpha)
+
+  print(F_partial(u0).shape)
+  print(u0.shape)
+  
+  u_anderson = optimize.anderson(F_partial, u0, verbose=True, f_tol=tol)
+
+  # mesh.tripcolor(u_anderson)
 
 
 def main():
@@ -94,7 +145,7 @@ def main():
                       [1, 1],
                       [0, 1] ]) 
   mesh = Triangulation.from_polygon(square, mesh_size=mesh_size) # make the square domain with mesh size `mesh_size`
-  mesh.plot()
+  # mesh.plot()
 
   n = mesh.points.shape[0]
   print("Number of vertices: ", n)
@@ -107,9 +158,12 @@ def main():
   u0 = u0_val * np.ones(n)
 
   # QUESTION 2: fixed point method
-  i, errors, u = solve_fixed_point(mesh, quadrule, u0, tol, alpha)
-  print("Number of iterations: ", i)
-  print("Final error: ", errors[i-1])
+  # i, errors, u = solve_fixed_point(mesh, quadrule, u0, tol, alpha)
+  # print("Number of iterations: ", i)
+  # print("Final error: ", errors[i-1])
+
+  # QUESTION 3: Anderson acceleration
+  anderson_acceleration(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
 
 
 if __name__ == '__main__':
