@@ -121,19 +121,16 @@ def anderson_acceleration(mesh: Triangulation, quadrule: QuadRule, u0:np.array, 
   #   return u_new - u
   
   F_partial = partial(F_anderson, mesh=mesh, quadrule=quadrule, f=f, alpha=alpha)
-
-  print(F_partial(u0).shape)
-  print(u0.shape)
   
-  u_anderson = optimize.anderson(F_partial, u0, verbose=True, f_tol=tol)
+  u_anderson = optimize.anderson(lambda u0: F_partial(u0), u0, verbose=True, f_tol=tol)
 
-  # mesh.tripcolor(u_anderson)
+  mesh.tripcolor(u_anderson)
 
 
 def main():
 
   # define parameters
-  alpha = 0.1 # OR alpha = 2.0
+  alpha = 2 # OR alpha = 2.0
   tol = 1e-6 # tolerance for the fixed point method
   u0_val = 0 # initial solution
   n_min = 100  # minimum number of vertices
