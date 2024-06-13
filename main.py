@@ -14,7 +14,7 @@ from utils.mesh import Triangulation
 from utils.quad import QuadRule
 from functions import assemble_matrix_from_iterables, assemble_neumann_rhs, assemble_rhs_from_iterables, \
                       stiffness_with_diffusivity_iter, mass_with_reaction_iter, poisson_rhs_iter, mass_with_reaction_iter_2, \
-                      rhs_newton_b, mass_with_reaction_iter_3
+                      rhs_newton, rhs_newton_a, rhs_newton_b, mass_with_reaction_iter_3
 from utils.solve import solve_with_dirichlet_data
 
 
@@ -68,7 +68,8 @@ def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float
     # assemble the linear system
     Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
     Miter = mass_with_reaction_iter_3(mesh, quadrule, u, alpha)
-    rhsiter = rhs_newton_b(mesh=mesh, quadrule=quadrule, alpha=alpha, un=u) #+ rhs_newton_a() + 
+    rhsiter = rhs_newton(mesh=mesh, quadrule=quadrule, alpha=alpha, un=u)
+    # rhs_newton_b(mesh=mesh, quadrule=quadrule, alpha=alpha, un=u) + rhs_newton_a(mesh=mesh, quadrule=quadrule, un=u)  
 
     # import ipdb
     # ipdb.set_trace()
