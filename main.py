@@ -17,7 +17,7 @@ from functions import assemble_matrix_from_iterables, assemble_neumann_rhs, asse
                       rhs_newton_b, mass_with_reaction_iter_3
 from utils.solve import solve_with_dirichlet_data
 
-
+# QUESTION 2
 def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float, alpha:float):
   error = tol + 1
   f = lambda x: np.array([100])
@@ -26,17 +26,15 @@ def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:
   max_iter = 10000
   errors = np.zeros(max_iter)
 
+  # assemble the RHS of the linear system only once
+  rhsiter = poisson_rhs_iter(mesh, quadrule, f)
+  rhs = assemble_rhs_from_iterables(mesh, rhsiter)
+
   while (error > tol) and (i < max_iter):
-    # assemble the linear system
+    # assemble the LHS of the linear system
     Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
     Miter = mass_with_reaction_iter_2(mesh, quadrule, u, alpha)
-    rhsiter = poisson_rhs_iter(mesh, quadrule, f)
-
-    # import ipdb
-    # ipdb.set_trace()
-
     S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
-    rhs = assemble_rhs_from_iterables(mesh, rhsiter)
 
     # solve the system
     bindices = np.unique(mesh.lines)
@@ -46,15 +44,39 @@ def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:
     error = np.linalg.norm(u - u_new, ord = np.inf)
     errors[i] = error
 
-    print(i, error)
-
     # update u
     u = u_new
     i += 1 
   
+  print("Number of iterations: ", i)
+  print("Final error: ", errors[i-1])
   mesh.tripcolor(u)
-  return i, errors, u
 
+# QUESTION 3
+def solve_anderson(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: float, alpha:float):
+  f = lambda x: np.array([100])
+
+  # assemble the RHS of the linear system only once
+  rhsiter = poisson_rhs_iter(mesh, quadrule, f)
+  rhs = assemble_rhs_from_iterables(mesh, rhsiter)
+
+  def F_anderson(u):
+    # assemble the LHS of the linear system
+    Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
+    Miter = mass_with_reaction_iter_2(mesh, quadrule, u, alpha)
+    S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
+
+    # solve the system
+    bindices = np.unique(mesh.lines)
+    u_new = solve_with_dirichlet_data(S, rhs, bindices, np.zeros_like(bindices))
+
+    return u_new - u
+  
+  u_anderson = optimize.anderson(lambda u0: F_anderson(u0), u0, verbose=True, f_tol=tol)
+
+  mesh.tripcolor(u_anderson)
+
+# QUESTION 4
 def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float, alpha:float):
   error = tol + 1
   # f = lambda x: np.ones(x.shape).T
@@ -69,9 +91,6 @@ def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float
     Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
     Miter = mass_with_reaction_iter_3(mesh, quadrule, u, alpha)
     rhsiter = rhs_newton_b(mesh=mesh, quadrule=quadrule, alpha=alpha, un=u) #+ rhs_newton_a() + 
-
-    # import ipdb
-    # ipdb.set_trace()
 
     S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
     rhs = assemble_rhs_from_iterables(mesh, rhsiter)
@@ -92,59 +111,8 @@ def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float
   
   mesh.tripcolor(u)
 
-# def solve_linear_problem(mesh, quadrule, un, alpha):
-#   r""" 
-#     Inspired from function solve_problem_3() from the FEM code provided as part of the class
-#     Computes THE P1 FEM solution of the following problem:
-
-#       -∆u + r(x, y) u = 100    in  Ω
-#             u = 0    on ∂Ω
-
-#     where Ω = (0, 1)^2.
-
-#     parameters
-#     ----------
-#     mesh_size : `float`
-#       Numeric value 0 < mesh_size < 1 tuning the mesh density.
-#       Smaller value => denser mesh.
-
-#   """
-
-#   Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
-#   Miter = mass_with_reaction_iter(mesh, quadrule, un, alpha)
-#   # f = 100 * np.ones((mesh.points.shape[0], 1))
-#   # rhsiter = poisson_rhs_iter(mesh, quadrule, f)
-
-def solve_anderson(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: float, alpha:float):
-
-  # f = lambda x: np.ones(x.shape).T
-  f = lambda x: np.array([100])
-
-  def F_anderson(u):
-    # assemble the linear system
-    Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
-    Miter = mass_with_reaction_iter_2(mesh, quadrule, u, alpha)
-    rhsiter = poisson_rhs_iter(mesh, quadrule, f)
-
-    # import ipdb
-    # ipdb.set_trace()
-
-    S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
-    rhs = assemble_rhs_from_iterables(mesh, rhsiter)
-
-    # solve the system
-    bindices = np.unique(mesh.lines)
-    u_new = solve_with_dirichlet_data(S, rhs, bindices, np.zeros_like(bindices))
-
-    return u_new - u
-  
-  u_anderson = optimize.anderson(lambda u0: F_anderson(u0), u0, verbose=True, f_tol=tol)
-
-  mesh.tripcolor(u_anderson)
-
 
 def main():
-
   # define parameters
   alpha = 0.1 # OR alpha = 2.0
   tol = 1e-6 # tolerance for the fixed point method
@@ -161,7 +129,7 @@ def main():
   # mesh.plot()
 
   n = mesh.points.shape[0]
-  print("Number of vertices: ", n)
+  # print("Number of vertices: ", n)
   assert n >= n_min, "The number of vertices should be >= 100"
 
   # define the quadrature formula
@@ -171,15 +139,13 @@ def main():
   u0 = u0_val * np.ones(n)
 
   # QUESTION 2: fixed point method
-  # i, errors, u = solve_fixed_point(mesh, quadrule, u0, tol, alpha)
-  # print("Number of iterations: ", i)
-  # print("Final error: ", errors[i-1])
+  # solve_fixed_point(mesh, quadrule, u0, tol, alpha)
 
   # QUESTION 3: Anderson acceleration
-  # solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
 
   # QUESTION 4: Newton scheme
-  solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  # solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
 
 
 if __name__ == '__main__':
