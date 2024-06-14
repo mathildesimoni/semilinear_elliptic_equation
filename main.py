@@ -12,9 +12,9 @@ from functools import partial
 from utils.quad import seven_point_gauss_6
 from utils.mesh import Triangulation
 from utils.quad import QuadRule
-from functions import assemble_matrix_from_iterables, assemble_neumann_rhs, assemble_rhs_from_iterables, \
-                      stiffness_with_diffusivity_iter, mass_with_reaction_iter, poisson_rhs_iter, mass_with_reaction_iter_2, \
-                      rhs_newton, rhs_newton_a, rhs_newton_b, mass_with_reaction_iter_3
+from functions import assemble_matrix_from_iterables, assemble_rhs_from_iterables, \
+                      stiffness_with_diffusivity_iter, poisson_rhs_iter, mass_with_reaction_iter_2, \
+                      newton_rhs_iter, mass_with_reaction_iter_3
 from utils.solve import solve_with_dirichlet_data
 
 # QUESTION 2
@@ -79,22 +79,25 @@ def solve_anderson(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: fl
 # QUESTION 4
 def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float, alpha:float):
   error = tol + 1
-  # f = lambda x: np.ones(x.shape).T
   u = u0
   i = 0
   max_iter = 10000
   errors = np.zeros(max_iter)
 
-
   while (error > tol) and (i < max_iter):
-    # assemble the linear system
+    # assemble the LHS of the linear system
     Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
     Miter = mass_with_reaction_iter_3(mesh, quadrule, u, alpha)
-    rhsiter = rhs_newton(mesh=mesh, quadrule=quadrule, alpha=alpha, un=u)
-    # rhs_newton_b(mesh=mesh, quadrule=quadrule, alpha=alpha, un=u) + rhs_newton_a(mesh=mesh, quadrule=quadrule, un=u)  
-
     S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
-    rhs = assemble_rhs_from_iterables(mesh, rhsiter)
+
+    # assemble the RHS of the linear system
+    Aiter_rhs = stiffness_with_diffusivity_iter(mesh, quadrule)
+    A =  assemble_matrix_from_iterables(mesh, Aiter_rhs)
+    rhs_1 = A.dot(u)
+
+    rhsiter = newton_rhs_iter(mesh=mesh, quadrule=quadrule, alpha=alpha, un=u)
+    rhs_2 = assemble_rhs_from_iterables(mesh, rhsiter)
+    rhs = -rhs_1 - rhs_2
 
     # solve the system
     bindices = np.unique(mesh.lines)
@@ -104,18 +107,18 @@ def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float
     error = np.linalg.norm(u - u_new, ord = np.inf)
     errors[i] = error
 
-    print(i, error)
-
     # update u
     u = u_new
     i += 1 
   
+  print("Number of iterations: ", i)
+  print("Final error: ", errors[i-1])
   mesh.tripcolor(u)
 
 
 def main():
   # define parameters
-  alpha = 0.1 # OR alpha = 2.0
+  alpha = 5 # OR alpha = 2.0
   tol = 1e-6 # tolerance for the fixed point method
   u0_val = 0 # initial solution
   n_min = 100  # minimum number of vertices
@@ -143,10 +146,10 @@ def main():
   # solve_fixed_point(mesh, quadrule, u0, tol, alpha)
 
   # QUESTION 3: Anderson acceleration
-  solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  # solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
 
   # QUESTION 4: Newton scheme
-  # solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
 
 
 if __name__ == '__main__':
