@@ -118,7 +118,8 @@ def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float
 
 def main():
   # define parameters
-  alpha = 5 # OR alpha = 2.0
+  # alpha = 5 # OR alpha = 2.0
+  alphas = [0.1, 2.0, 5.0]
   tol = 1e-6 # tolerance for the fixed point method
   u0_val = 0 # initial solution
   n_min = 100  # minimum number of vertices
@@ -130,7 +131,7 @@ def main():
                       [1, 1],
                       [0, 1] ]) 
   mesh = Triangulation.from_polygon(square, mesh_size=mesh_size) # make the square domain with mesh size `mesh_size`
-  # mesh.plot()
+  mesh.plot()
 
   n = mesh.points.shape[0]
   # print("Number of vertices: ", n)
@@ -143,14 +144,22 @@ def main():
   u0 = u0_val * np.ones(n)
 
   # QUESTION 2: fixed point method
-  # solve_fixed_point(mesh, quadrule, u0, tol, alpha)
+  # for alpha in alphas:
+  #   print(f"> Solving with the fixed point method with alpha = {alpha}")
+  #   solve_fixed_point(mesh, quadrule, u0, tol, alpha)
+  #   print('\n')
 
   # QUESTION 3: Anderson acceleration
-  # solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  # for alpha in alphas:
+  #   print(f"> Solving with anderson acceleration with alpha = {alpha}")
+  #   solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  #   print('\n')
 
   # QUESTION 4: Newton scheme
-  solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
-
+  # for alpha in alphas:
+  #   print(f"> Solving with Newton scheme with alpha = {alpha}")
+  #   solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  #   print('\n')
 
 if __name__ == '__main__':
   main()

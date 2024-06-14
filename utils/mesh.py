@@ -195,4 +195,5 @@ def plot_mesh(mesh: Triangulation):
   ax.set_aspect('equal')
 
   ax.triplot(*points.T, triangles)
+  plt.savefig('mesh.svg', bbox_inches='tight')
   plt.show()
