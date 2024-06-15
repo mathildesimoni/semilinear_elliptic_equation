@@ -146,7 +146,7 @@ class Triangulation:
     """ Return the sorted indices of all vertices that lie on the boundary. """
     return np.sort(np.unique(self.lines.ravel()))
 
-  def tripcolor(self, z, title=None, show=True):
+  def tripcolor(self, z, title=None, show=True, save=False, filename="plot.pdf"):
     """ Plot discrete data ``z`` on the vertices of the mesh.
         Data is linearly interpolated between the vertices. """
     fig, ax = plt.subplots()
@@ -156,6 +156,7 @@ class Triangulation:
     fig.colorbar(tpc)
     if title is not None:
       ax.set_title(title)
+    if save: plt.savefig(filename)
     if show: plt.show()
     return fig, ax
 
@@ -195,5 +196,5 @@ def plot_mesh(mesh: Triangulation):
   ax.set_aspect('equal')
 
   ax.triplot(*points.T, triangles)
-  plt.savefig('mesh.svg', bbox_inches='tight')
+  plt.savefig('data/mesh.svg', bbox_inches='tight')
   plt.show()

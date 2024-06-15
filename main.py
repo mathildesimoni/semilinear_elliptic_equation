@@ -50,7 +50,7 @@ def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:
   
   print("Number of iterations: ", i)
   print("Final error: ", errors[i-1])
-  mesh.tripcolor(u)
+  mesh.tripcolor(u, save = True, filename = "data/fixed_point_" + str(alpha) + ".pdf", title = r'$\alpha$ = ' + str(alpha))
 
 # QUESTION 3
 def solve_anderson(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: float, alpha:float):
@@ -74,7 +74,7 @@ def solve_anderson(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: fl
   
   u_anderson = optimize.anderson(lambda u0: F_anderson(u0), u0, verbose=True, f_tol=tol)
 
-  mesh.tripcolor(u_anderson)
+  mesh.tripcolor(u_anderson, save = True, filename = "data/anderson_" + str(alpha) + ".pdf", title = r'$\alpha$ = ' + str(alpha))
 
 # QUESTION 4
 def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float, alpha:float):
@@ -113,12 +113,12 @@ def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float
   
   print("Number of iterations: ", i)
   print("Final error: ", errors[i-1])
-  mesh.tripcolor(u)
+  mesh.tripcolor(u, save = True, filename = "data/newton_" + str(alpha) + ".pdf", title = r'$\alpha$ = ' + str(alpha))
 
 
 def main():
   # define parameters
-  # alpha = 5 # OR alpha = 2.0
+  alpha = 0.1 # 0.1, 2.0, 5.0
   alphas = [0.1, 2.0, 5.0]
   tol = 1e-6 # tolerance for the fixed point method
   u0_val = 0 # initial solution
@@ -144,18 +144,21 @@ def main():
   u0 = u0_val * np.ones(n)
 
   # QUESTION 2: fixed point method
+  # solve_fixed_point(mesh, quadrule, u0, tol, alpha)
   # for alpha in alphas:
   #   print(f"> Solving with the fixed point method with alpha = {alpha}")
   #   solve_fixed_point(mesh, quadrule, u0, tol, alpha)
   #   print('\n')
 
   # QUESTION 3: Anderson acceleration
+  # solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
   # for alpha in alphas:
   #   print(f"> Solving with anderson acceleration with alpha = {alpha}")
   #   solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
   #   print('\n')
 
   # QUESTION 4: Newton scheme
+  solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
   # for alpha in alphas:
   #   print(f"> Solving with Newton scheme with alpha = {alpha}")
   #   solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)

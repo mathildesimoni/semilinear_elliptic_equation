@@ -7,8 +7,8 @@ newton = [5, 7, 8]
 alpha = [0.1, 2.0, 5]
 
 
-plt.semilogy(alpha[:2], fixed_point, color='lightsteelblue', label='Fixed-point iteration')
-plt.semilogy(alpha, anderson, color='cornflowerblue', label='Anderson acceleration')
+plt.semilogy(alpha[:2], fixed_point, color='lightsteelblue', label="Fixed-point iteration")
+plt.semilogy(alpha, anderson, color='cornflowerblue', label="Anderson acceleration")
 plt.semilogy(alpha, newton, color='royalblue', label="Newton's method")
 
 texts =[str(fixed_point[0]) +' iter', 
@@ -33,10 +33,10 @@ for text, loc in zip(texts, locs):
     plt.annotate(text, loc)
 
 plt.grid(True)
-plt.ylabel('Number of iterations')
+plt.ylabel('Number of iterations (log scale)')
 plt.xlabel(r'Value for $\alpha$')
 plt.legend()
 
-plt.savefig('iterations.svg',format='svg', bbox_inches='tight')
+plt.savefig('data/iterations.svg',format='svg', bbox_inches='tight')
 
 plt.show()
