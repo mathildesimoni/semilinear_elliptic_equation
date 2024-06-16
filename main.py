@@ -134,7 +134,10 @@ def main():
   # mesh.plot()
 
   n = mesh.points.shape[0]
-  # print("Number of vertices: ", n)
+  n_tri = mesh.triangles.shape[0]
+  print("Number of vertices: ", n)
+  print("Number of triangles: ", n_tri)
+
   assert n >= n_min, "The number of vertices should be >= 100"
 
   # define the quadrature formula
