@@ -13,8 +13,8 @@ from utils.quad import seven_point_gauss_6
 from utils.mesh import Triangulation
 from utils.quad import QuadRule
 from functions import assemble_matrix_from_iterables, assemble_rhs_from_iterables, \
-                      stiffness_with_diffusivity_iter, poisson_rhs_iter, mass_with_reaction_iter_2, \
-                      newton_rhs_iter, mass_with_reaction_iter_3
+                      stiffness_with_diffusivity_iter, poisson_rhs_iter, mass_with_reaction_iter_Un, \
+                      newton_rhs_iter, mass_with_reaction_iter_dUn
 from utils.solve import solve_with_dirichlet_data
 
 # QUESTION 2
@@ -33,7 +33,7 @@ def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:
   while (error > tol) and (i < max_iter):
     # assemble the LHS of the linear system
     Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
-    Miter = mass_with_reaction_iter_2(mesh, quadrule, u, alpha)
+    Miter = mass_with_reaction_iter_Un(mesh, quadrule, u, alpha)
     S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
 
     # solve the system
@@ -63,7 +63,7 @@ def solve_anderson(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: fl
   def F_anderson(u):
     # assemble the LHS of the linear system
     Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
-    Miter = mass_with_reaction_iter_2(mesh, quadrule, u, alpha)
+    Miter = mass_with_reaction_iter_Un(mesh, quadrule, u, alpha)
     S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
 
     # solve the system
@@ -87,7 +87,7 @@ def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float
   while (error > tol) and (i < max_iter):
     # assemble the LHS of the linear system
     Aiter = stiffness_with_diffusivity_iter(mesh, quadrule)
-    Miter = mass_with_reaction_iter_3(mesh, quadrule, u, alpha)
+    Miter = mass_with_reaction_iter_dUn(mesh, quadrule, u, alpha)
     S = assemble_matrix_from_iterables(mesh, Miter, Aiter)
 
     # assemble the RHS of the linear system
@@ -131,7 +131,7 @@ def main():
                       [1, 1],
                       [0, 1] ]) 
   mesh = Triangulation.from_polygon(square, mesh_size=mesh_size) # make the square domain with mesh size `mesh_size`
-  mesh.plot()
+  # mesh.plot()
 
   n = mesh.points.shape[0]
   # print("Number of vertices: ", n)
@@ -144,7 +144,7 @@ def main():
   u0 = u0_val * np.ones(n)
 
   # QUESTION 2: fixed point method
-  # solve_fixed_point(mesh, quadrule, u0, tol, alpha)
+  solve_fixed_point(mesh, quadrule, u0, tol, alpha)
   # for alpha in alphas:
   #   print(f"> Solving with the fixed point method with alpha = {alpha}")
   #   solve_fixed_point(mesh, quadrule, u0, tol, alpha)
@@ -158,7 +158,7 @@ def main():
   #   print('\n')
 
   # QUESTION 4: Newton scheme
-  solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  # solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
   # for alpha in alphas:
   #   print(f"> Solving with Newton scheme with alpha = {alpha}")
   #   solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)

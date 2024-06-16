@@ -105,7 +105,7 @@ def assemble_rhs_from_iterables(mesh: Triangulation, *rhs_iterables) -> np.ndarr
 
   return rhs
 
-def mass_with_reaction_iter_2(mesh: Triangulation, quadrule: QuadRule, un, alpha) -> Iterable:
+def mass_with_reaction_iter_Un(mesh: Triangulation, quadrule: QuadRule, un, alpha) -> Iterable:
   r"""
     Iterator for the mass matrix, to be passed into `assemble_matrix_from_iterables`.
 
@@ -129,8 +129,6 @@ def mass_with_reaction_iter_2(mesh: Triangulation, quadrule: QuadRule, un, alpha
     For an example, see the end of the script.
   """
 
-  # freact not passed => take it to be constant one.
-  # freact = lambda x: alpha * np.array([x**2])
   freact = lambda x: alpha * np.square(x)
 
   weights = quadrule.weights
@@ -149,7 +147,7 @@ def mass_with_reaction_iter_2(mesh: Triangulation, quadrule: QuadRule, un, alpha
     outer = (weights[:, _, _] * shapeF[..., _] * shapeF[:, _] * freact(un_qpoints)[:, _, _]).sum(0)
     yield outer * detBK
 
-def mass_with_reaction_iter_3(mesh: Triangulation, quadrule: QuadRule, un, alpha) -> Iterable:
+def mass_with_reaction_iter_dUn(mesh: Triangulation, quadrule: QuadRule, un, alpha) -> Iterable:
   r"""
     Iterator for the mass matrix, to be passed into `assemble_matrix_from_iterables`.
 
