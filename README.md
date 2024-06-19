@@ -1,4 +1,4 @@
-# semilinear_elliptic_equation
-Mini-project for the class "Numerical Approximation to PDE's"
+# Project 3 - semilinear_elliptic_equation
+Mathilde Simoni - 371423
+Julie Charlet - 314454
 
-[link to report](https://typst.app/project/w_PM-NkVTjJVPGLppwMyQ4)
