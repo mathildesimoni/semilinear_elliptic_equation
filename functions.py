@@ -56,9 +56,6 @@ def grad_shape2D_LFE(quadrule: QuadRule) -> np.ndarray:
       of the quadrature point, the second axis to the index of the local
       basis function and the third to the component of the gradient.
 
-      Example: the gradient of shape (2,) of the 2nd local basis function
-               in the third quadrature point is given by x[2, 1, :]
-               (0-based indexing).
   """
   assert quadrule.simplex_type == 'triangle'
 
@@ -117,16 +114,11 @@ def mass_with_reaction_iter_Un(mesh: Triangulation, quadrule: QuadRule, un, alph
     quadrule : :class: `QuadRule`
       Instantiation of the `QuadRule` class with fields quadrule.points and
       quadrule.weights. quadrule.simplex_type must be 'triangle'.
-    freact: :class: `Callable`
-      Function representing the reaction term. Must take as argument a single
-      array of shape quadrule.points.shape and return a :class: `np.ndarray`
-      object either of shape arr.shape == quadrule.weights.shape or
-                             arr.shape == (1,)
-      The latter usually means that freact is constant.
+    un  : :np.array
+      Solution from the previous iteration
+    alpha : :np.float
+      Alpha parameter of the problem
 
-    Example
-    -------
-    For an example, see the end of the script.
   """
 
   freact = lambda x: alpha * np.square(x)
@@ -159,16 +151,11 @@ def mass_with_reaction_iter_dUn(mesh: Triangulation, quadrule: QuadRule, un, alp
     quadrule : :class: `QuadRule`
       Instantiation of the `QuadRule` class with fields quadrule.points and
       quadrule.weights. quadrule.simplex_type must be 'triangle'.
-    freact: :class: `Callable`
-      Function representing the reaction term. Must take as argument a single
-      array of shape quadrule.points.shape and return a :class: `np.ndarray`
-      object either of shape arr.shape == quadrule.weights.shape or
-                             arr.shape == (1,)
-      The latter usually means that freact is constant.
+    un  : :np.array
+      Solution from the previous iteration
+    alpha : :np.float
+      Alpha parameter of the problem
 
-    Example
-    -------
-    For an example, see the end of the script.
   """
 
   # freact not passed => take it to be constant one.
@@ -197,13 +184,14 @@ def stiffness_with_diffusivity_iter(mesh: Triangulation, quadrule: QuadRule, fdi
 
     Parameters
     ----------
+    mesh : :class:`Triangulation`
+      An instantiation of the `Triangulation` class, representing the mesh.
+    quadrule : :class: `QuadRule`
+      Instantiation of the `QuadRule` class with fields quadrule.points and
+      quadrule.weights. quadrule.simplex_type must be 'triangle'.
+    fdiffuse: :class: `Callable`
+      Function representing the diffusion term.
 
-    Exactly the same as in `mass_with_reaction_iter`.
-    freact -> fdiffuse and has to be implemented in the exact same way.
-
-    Example
-    -------
-    For an example, see the end of the script.
   """
 
   if fdiffuse is None:

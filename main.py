@@ -19,11 +19,34 @@ from utils.solve import solve_with_dirichlet_data
 
 # QUESTION 2
 def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float, alpha:float):
+  r"""
+    Solves the discretized semilinear elliptic equation:
+
+    - \grad(u_{n+1}) + \alpha u_n^2 u_{n+1} = f, in \Omega
+    u = 0, on \delta \Omega
+
+    with the fixed-point iteration method
+
+    Parameters
+    ----------
+    mesh : :class:`Triangulation`
+      An instantiation of the `Triangulation` class, representing the mesh.
+    quadrule : :class: `QuadRule`
+      Instantiation of the `QuadRule` class with fields quadrule.points and
+      quadrule.weights. quadrule.simplex_type must be 'triangle'.
+    u0  : :np.array
+      Initial guess for the solution
+    tol : :float
+      Tolerance threshold for the final error
+    alpha : :np.float
+      Alpha parameter of the problem
+
+  """
   error = tol + 1
   f = lambda x: np.array([100])
   u = u0
   i = 0
-  max_iter = 10000
+  max_iter = 1000
   errors = np.zeros(max_iter)
 
   # assemble the RHS of the linear system only once
@@ -54,6 +77,29 @@ def solve_fixed_point(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:
 
 # QUESTION 3
 def solve_anderson(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: float, alpha:float):
+  r"""
+    Solves the discretized semilinear elliptic equation:
+
+    - \grad(u_{n+1}) + \alpha u_n^2 u_{n+1} = f, in \Omega
+    u = 0, on \delta \Omega
+
+    with the Anderson acceleration method
+
+    Parameters
+    ----------
+    mesh : :class:`Triangulation`
+      An instantiation of the `Triangulation` class, representing the mesh.
+    quadrule : :class: `QuadRule`
+      Instantiation of the `QuadRule` class with fields quadrule.points and
+      quadrule.weights. quadrule.simplex_type must be 'triangle'.
+    u0  : :np.array
+      Initial guess for the solution
+    tol : :float
+      Tolerance threshold for the final error
+    alpha : :np.float
+      Alpha parameter of the problem
+
+  """
   f = lambda x: np.array([100])
 
   # assemble the RHS of the linear system only once
@@ -78,6 +124,29 @@ def solve_anderson(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol: fl
 
 # QUESTION 4
 def solve_newton(mesh: Triangulation, quadrule: QuadRule, u0:np.array, tol:float, alpha:float):
+  r"""
+    Solves the discretized semilinear elliptic equation:
+
+    - \grad(u_{n+1}) + \alpha u_n^2 u_{n+1} = f, in \Omega
+    u = 0, on \delta \Omega
+
+    with Newton's method
+
+    Parameters
+    ----------
+    mesh : :class:`Triangulation`
+      An instantiation of the `Triangulation` class, representing the mesh.
+    quadrule : :class: `QuadRule`
+      Instantiation of the `QuadRule` class with fields quadrule.points and
+      quadrule.weights. quadrule.simplex_type must be 'triangle'.
+    u0  : :np.array
+      Initial guess for the solution
+    tol : :float
+      Tolerance threshold for the final error
+    alpha : :np.float
+      Alpha parameter of the problem
+
+  """
   error = tol + 1
   u = u0
   i = 0
@@ -131,7 +200,7 @@ def main():
                       [1, 1],
                       [0, 1] ]) 
   mesh = Triangulation.from_polygon(square, mesh_size=mesh_size) # make the square domain with mesh size `mesh_size`
-  # mesh.plot()
+  mesh.plot()
 
   n = mesh.points.shape[0]
   n_tri = mesh.triangles.shape[0]
@@ -154,14 +223,14 @@ def main():
   #   print('\n')
 
   # QUESTION 3: Anderson acceleration
-  # solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
   # for alpha in alphas:
   #   print(f"> Solving with anderson acceleration with alpha = {alpha}")
   #   solve_anderson(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
   #   print('\n')
 
   # QUESTION 4: Newton scheme
-  # solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
+  solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
   # for alpha in alphas:
   #   print(f"> Solving with Newton scheme with alpha = {alpha}")
   #   solve_newton(mesh=mesh, quadrule=quadrule, u0=u0, tol=tol, alpha=alpha)
